@@ -10,7 +10,7 @@ Description: This package downloads and standardizes data from
     the Vox Machina campaign of CritRoleStats 
     (https://www.critrolestats.com/stats-vm). 
     TODO: add other functionality as it is implemented.
-License: What license is it under?
+License: CC0
 Encoding: UTF-8
 LazyData: true
 Imports:
