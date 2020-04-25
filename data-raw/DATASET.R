@@ -5,6 +5,8 @@
 # This script will be for reading and cleaning all of the data from the Vox Machina Campaign of CritRoleStats:
 #    https://www.critrolestats.com/stats-vm
 
+library(gsheet) # what a godsend lets you download google sheet using url https://github.com/maxconway/gsheet
+
 # Check for data/ directory
 ifelse(!dir.exists(here("data-raw/data")),
        dir.create(file.path("data-raw/data")),
@@ -33,5 +35,30 @@ ifelse(!dir.exists(here("data-raw/data")),
 ##### damage (int): amount of damage dealt if an attack roll (damage currently a string, will have to scrape and convert)
 ##### notes (string): memos written by the dataset creator
 
-https://docs.google.com/spreadsheets/d/1OEg29XbL_YpO0m5JrLQpOPYTnxVsIg8iP67EYUrtRJg/edit?usp=sharing
+all_rolls <- gsheet2tbl('https://docs.google.com/spreadsheets/d/1OEg29XbL_YpO0m5JrLQpOPYTnxVsIg8iP67EYUrtRJg/edit')
+#### currently, this just gets the first sheet. But we'll start with that and do some cleaning
+#### the columns we want are:
+##### ep -> Episode (1)
+##### time -> Time (2)
+##### char -> Character (3)
+##### type -> Type of Roll (4)
+##### total -> Total Value (5)
+##### nat -> Natural Value (6)
+##### damage -> Damage Dealt (8), skip 7 Crit? because that's a useless varialbe
+##### notes -> Notes (9)
+all_rolls <- all_rolls %>% select(Episode, # select columns by name in case order changes
+                     Time,
+                     Character,
+                     'Type of Roll', # need quotes for multiple word column names
+                     'Total Value',
+                     'Natural Value',
+                     'Damage Dealt',
+                     Notes) %>% rename(ep = Episode, # rename columns to be not horrible
+                                  time = Time,
+                                  char = Character,
+                                  type = 'Type of Roll',
+                                  total = 'Total Value',
+                                  nat = "Natural Value",
+                                  damage = "Damage Dealt",
+                                  notes = Notes)
 
