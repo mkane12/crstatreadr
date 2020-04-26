@@ -29,14 +29,14 @@ ifelse(!dir.exists(here("data-raw/data")),
 
 #### For the time being, let's have our consolidated column names be:
 ##### ep (int): episode number
-##### time (datetime): real time in episode of roll
-##### char (string): name of character who rolled
-##### type (string): type of roll being made (persuasion, attack, etc.)
+##### time (dbl): time in seconds ellapsed in episode until roll
+##### char (chr): name of character who rolled
+##### type (chr): type of roll being made (persuasion, attack, etc.)
 ##### total (int): total value of roll after adding any modifiers
 ##### nat (int): "natural" value of roll before adding modifiers
 ##### damage (int): amount of damage dealt if an attack roll (damage currently a string, will have to scrape and convert)
-##### crit (int): binary noting whether or not roll was a crit (nat 1 or nat 20)
-##### notes (string): memos written by the dataset creator
+##### notes (chr): memos written by the dataset creator
+##### crit (dbl): binary noting whether or not roll was a crit (nat 1 or nat 20)
 
 all_rolls <- gsheet2tbl('https://docs.google.com/spreadsheets/d/1OEg29XbL_YpO0m5JrLQpOPYTnxVsIg8iP67EYUrtRJg/edit')
 #### currently, this just gets the first sheet. But we'll start with that and do some cleaning
@@ -69,6 +69,7 @@ all_rolls <- all_rolls %>%
 
 #### Now to clean. For starters, let's replace all "Unknown" with NA
 all_rolls <- all_rolls %>% replace_with_na_all(condition = ~.x == "Unknown")
+#### Note: now 'time' has turned to dbl noting number of seconds ellapsed. I think that's fine.
 
 #### Now for the more complex problem of crits - natural 1's (Nat1) and natural 20s (Nat20).
 #### Not all of them have recorded total values, since crits automatically fail/succeed.
@@ -76,12 +77,15 @@ all_rolls <- all_rolls %>% replace_with_na_all(condition = ~.x == "Unknown")
 ##### This was noted only for attack rolls in the original file, but any crit rolled sounds more interesting, so we'll write a new column.
 all_rolls$crit <- if_else((all_rolls$nat == 1 | all_rolls$nat == 20), 1, 0, 0) # 1 if crit, 0 otherwise
 
-#### Finally, we change the Nat1 and Nat20 in the total column to just 1 and 20
+#### Change the Nat1 and Nat20 in the total column to just 1 and 20
 ##### Need to check if na to avoid errors being thrown
 ##### TODO: but maybe it'd be better to determine modifiers from previous rolls and add them? Sounds... hard
 all_rolls[!is.na(all_rolls$total) & all_rolls$total == "Nat1", 'total'] <- 1
 all_rolls[!is.na(all_rolls$total) & all_rolls$total == "Nat20", 'total'] <- 20
 
+#### Change damage to numeric; no need for type or target
+##### damage follows format of "<amount> <damage type> to <character>", so should just be able to take first word as the value
+all_rolls$damage <- as.numeric(word(all_rolls$damage, 1))
 
-
-
+#### Change column types for total and nat to numeric
+all_rolls[, c('total', 'nat')] <- sapply(all_rolls[, c('total', 'nat')], as.numeric)
