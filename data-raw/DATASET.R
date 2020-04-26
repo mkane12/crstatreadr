@@ -6,8 +6,10 @@
 #    https://www.critrolestats.com/stats-vm
 
 library(tidyverse)
+library(here) # needed to check if directory exists
 library(gsheet) # what a godsend lets you download google sheet using url https://github.com/maxconway/gsheet
 library(naniar) # needed to replace "Unknown" with NA
+library(usethis) # needed for writing packages
 
 # Check for data/ directory
 ifelse(!dir.exists(here("data-raw/data")),
@@ -89,3 +91,6 @@ all_rolls$damage <- as.numeric(word(all_rolls$damage, 1))
 
 #### Change column types for total and nat to numeric
 all_rolls[, c('total', 'nat')] <- sapply(all_rolls[, c('total', 'nat')], as.numeric)
+
+# WRITE DATA
+usethis::use_data(all_rolls, overwrite = TRUE, compress = "xz")
