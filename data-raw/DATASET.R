@@ -7,7 +7,9 @@
 
 library(tidyverse)
 library(here) # needed to check if directory exists
-library(gsheet) # what a godsend lets you download google sheet using url https://github.com/maxconway/gsheet
+# TODO: choose one sheet library
+library(gsheet) # lets you download google sheet using url https://github.com/maxconway/gsheet
+library(googlesheets4) # lets you download
 library(naniar) # needed to replace "Unknown" with NA
 library(usethis) # needed for writing packages
 
@@ -30,17 +32,19 @@ ifelse(!dir.exists(here("data-raw/data")),
 #### Natural 1's and 20's are written as Nat1 and Nat20, which we'll have to convert as well
 
 #### For the time being, let's have our consolidated column names be:
-##### ep (int): episode number
+##### ep (dbl): episode number
 ##### time (dbl): time in seconds ellapsed in episode until roll
 ##### char (chr): name of character who rolled
 ##### type (chr): type of roll being made (persuasion, attack, etc.)
-##### total (int): total value of roll after adding any modifiers
-##### nat (int): "natural" value of roll before adding modifiers
-##### damage (int): amount of damage dealt if an attack roll (damage currently a string, will have to scrape and convert)
+##### total (dbl): total value of roll after adding any modifiers
+##### nat (dbl): "natural" value of roll before adding modifiers
+##### damage (dbl): amount of damage dealt if an attack roll (damage currently a string, will have to scrape and convert)
 ##### notes (chr): memos written by the dataset creator
 ##### crit (dbl): binary noting whether or not roll was a crit (nat 1 or nat 20)
 
-all_rolls <- gsheet2tbl('https://docs.google.com/spreadsheets/d/1OEg29XbL_YpO0m5JrLQpOPYTnxVsIg8iP67EYUrtRJg/edit')
+# since the sheets are public, no need to force user to log in to Google
+sheets_deauth()
+all_rolls <-sheets_read("https://docs.google.com/spreadsheets/d/1OEg29XbL_YpO0m5JrLQpOPYTnxVsIg8iP67EYUrtRJg/edit")
 #### currently, this just gets the first sheet. But we'll start with that and do some cleaning
 #### the columns we want are:
 ##### ep -> Episode (1)
