@@ -7,9 +7,7 @@
 
 library(tidyverse)
 library(here) # needed to check if directory exists
-# TODO: choose one sheet library
-library(gsheet) # lets you download google sheet using url https://github.com/maxconway/gsheet
-library(googlesheets4) # lets you download
+library(googlesheets4) # lets you download multiple worksheets from google sheets https://cran.r-project.org/web/packages/googlesheets4/googlesheets4.pdf
 library(naniar) # needed to replace "Unknown" with NA
 library(usethis) # needed for writing packages
 
@@ -18,34 +16,46 @@ ifelse(!dir.exists(here("data-raw/data")),
        dir.create(file.path("data-raw/data")),
        FALSE)
 
-# DATA-GETTING FUNCTIONS
-
-## Crits and Rolls
-
-### All Rolls
-#### This dataset is a google sheet listing all of the rolls by every PC (Player Character) in the Vox Machina Campaign.
-#### It is split into separate sheets for each episode.
-#### Oh god even between the sheets, the columns are different, though not by too much.
-####    Will I have to go through each of the 115 episodes manually to see which columns to read?
-####    Sometimes the column names are different too even though it's the same value... this is gross
-#### Also, unknown values are written as "Unknown"
-#### Natural 1's and 20's are written as Nat1 and Nat20, which we'll have to convert as well
-
-#### For the time being, let's have our consolidated column names be:
-##### ep (dbl): episode number
-##### time (dbl): time in seconds ellapsed in episode until roll
-##### char (chr): name of character who rolled
-##### type (chr): type of roll being made (persuasion, attack, etc.)
-##### total (dbl): total value of roll after adding any modifiers
-##### nat (dbl): "natural" value of roll before adding modifiers
-##### damage (dbl): amount of damage dealt if an attack roll (damage currently a string, will have to scrape and convert)
-##### notes (chr): memos written by the dataset creator
-##### crit (dbl): binary noting whether or not roll was a crit (nat 1 or nat 20)
-
-# since the sheets are public, no need to force user to log in to Google
+# since the google sheets on the site are public, no need to force user to log in to Google
 sheets_deauth()
-all_rolls <-sheets_read("https://docs.google.com/spreadsheets/d/1OEg29XbL_YpO0m5JrLQpOPYTnxVsIg8iP67EYUrtRJg/edit")
-#### currently, this just gets the first sheet. But we'll start with that and do some cleaning
+
+### DATA-GETTING FUNCTIONS ###
+
+## Crits and Rolls ##
+
+# All Rolls
+# This dataset is a google sheet listing all of the rolls by every PC (Player Character) in the Vox Machina Campaign.
+# It is split into separate sheets for each episode.
+# Oh god even between the sheets, the columns are different, though not by too much.
+#    Will I have to go through each of the 115 episodes manually to see which columns to read?
+#    Sometimes the column names are different too even though it's the same value... this is gross
+# Also, unknown values are written as "Unknown"
+# Natural 1's and 20's are written as Nat1 and Nat20, which we'll have to convert as well
+
+# For the time being, let's have our consolidated column names be:
+# ep (dbl): episode number
+# time (dbl): time in seconds ellapsed in episode until roll
+# char (chr): name of character who rolled
+# type (chr): type of roll being made (persuasion, attack, etc.)
+# total (dbl): total value of roll after adding any modifiers
+# nat (dbl): "natural" value of roll before adding modifiers
+# damage (dbl): amount of damage dealt if an attack roll (damage currently a string, will have to scrape and convert)
+# notes (chr): memos written by the dataset creator
+# crit (dbl): binary noting whether or not roll was a crit (nat 1 or nat 20)
+
+# get metadata for the google sheet so we can loop through every worksheet
+all_rolls_metadata <- sheets_get("https://docs.google.com/spreadsheets/d/1OEg29XbL_YpO0m5JrLQpOPYTnxVsIg8iP67EYUrtRJg/edit")
+
+# takes a longass time, but reads all the sheets (let's never do this again)
+# TODO: this loop is kinda ugly. Let's clean it later
+for (x in 1:dim(all_rolls_metadata$sheets['name'])[1]) {
+  all_rolls <- sheets_read("https://docs.google.com/spreadsheets/d/1OEg29XbL_YpO0m5JrLQpOPYTnxVsIg8iP67EYUrtRJg/edit",
+              sheet = x)
+}
+# freak out: Error: Client error: (429) RESOURCE_EXHAUSTED
+# This version of the Google Sheets API has a limit of 500 requests per 100 seconds per project, and 100 requests per 100 seconds per user. Limits for reads and writes are tracked separately. There is no daily usage limit.
+# in other words, maybe we need to artificially slow it down...
+
 #### the columns we want are:
 ##### ep -> Episode (1)
 ##### time -> Time (2)
