@@ -46,15 +46,14 @@ sheets_deauth()
 # get metadata for the google sheet so we can loop through every worksheet
 all_rolls_metadata <- sheets_get("https://docs.google.com/spreadsheets/d/1OEg29XbL_YpO0m5JrLQpOPYTnxVsIg8iP67EYUrtRJg/edit")
 
+all_rolls <- NULL
 # takes a longass time, but reads all the sheets (let's never do this again)
 # TODO: this loop is kinda ugly. Let's clean it later
-for (x in 1:dim(all_rolls_metadata$sheets['name'])[1]) {
-  all_rolls <- sheets_read("https://docs.google.com/spreadsheets/d/1OEg29XbL_YpO0m5JrLQpOPYTnxVsIg8iP67EYUrtRJg/edit",
-              sheet = x)
+for (x in 1:3) {# TODO: we'll just do 2 sheets for now dim(all_rolls_metadata$sheets['name'])[1]) {
+  all_rolls <- bind_rows(all_rows, sheets_read("https://docs.google.com/spreadsheets/d/1OEg29XbL_YpO0m5JrLQpOPYTnxVsIg8iP67EYUrtRJg/edit",
+              sheet = x))
+  Sys.sleep(1) # sleep 1 second between each sheet read so Google doesn't get mad at us and throw Client error: (429) RESOURCE_EXHAUSTED
 }
-# freak out: Error: Client error: (429) RESOURCE_EXHAUSTED
-# This version of the Google Sheets API has a limit of 500 requests per 100 seconds per project, and 100 requests per 100 seconds per user. Limits for reads and writes are tracked separately. There is no daily usage limit.
-# in other words, maybe we need to artificially slow it down...
 
 #### the columns we want are:
 ##### ep -> Episode (1)
