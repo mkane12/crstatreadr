@@ -8,7 +8,7 @@
 library(tidyverse)
 library(here) # needed to check if directory exists
 library(googlesheets4) # lets you download multiple worksheets from google sheets https://cran.r-project.org/web/packages/googlesheets4/googlesheets4.pdf
-library(naniar) # needed to replace "Unknown" with NA
+library(naniar) # needed to replace "Unknown" with NA TODO: can probably get rid of this
 library(usethis) # needed for writing packages
 
 # Check for data/ directory
@@ -48,24 +48,28 @@ all_rolls_metadata <- sheets_get("https://docs.google.com/spreadsheets/d/1OEg29X
 
 tibble_list <- NULL
 # takes a longass time, but reads all the sheets (let's never do this again)
+# TODO: but this means that this data, with its dozens of google sheets, will take ages to download. Rip users
 for (x in 1:dim(all_rolls_metadata$sheets['name'])[1]) {
   # We start by just making a list of tibbles - much easier to bind them all at the end rather than as we go
   tibble_list[[x]] <- sheets_read("https://docs.google.com/spreadsheets/d/1OEg29XbL_YpO0m5JrLQpOPYTnxVsIg8iP67EYUrtRJg/edit",
-                                 sheet = x, col_types = "c")
-  Sys.sleep(1) # sleep 1 second between each sheet read so Google doesn't get mad at us and throw Client error: (429) RESOURCE_EXHAUSTED
+                                 sheet = x,
+                                 col_types = "c", # need to read all cols as chars to avoid miscasting
+                                 na = c("", "Unknown") # deal with annoying non-standard NA values
+                                 )
+  Sys.sleep(1.5) # sleep 1.5s between each sheet read so Google doesn't get mad at us and throw Client error: (429) RESOURCE_EXHAUSTED
 }
 # bind them tibbles
 all_rolls <- bind_rows(tibble_list)
 
-#### the columns we want are:
-##### ep -> Episode (1)
-##### time -> Time (2)
-##### char -> Character (3)
-##### type -> Type of Roll (4)
-##### total -> Total Value (5)
-##### nat -> Natural Value (6)
-##### damage -> Damage Dealt (8), skip Crit? (7) because we're making our own column for that
-##### notes -> Notes (9)
+# the columns we want are:
+# ep -> Episode (1)
+# time -> Time (2)
+# char -> Character (3)
+# type -> Type of Roll (4)
+# total -> Total Value (5)
+# nat -> Natural Value (6)
+# damage -> Damage Dealt (8), skip Crit? (7) because we're making our own column for that
+# notes -> Notes (9)
 all_rolls <- all_rolls %>%
   select(Episode, # select columns by name in case order changes
          Time,
@@ -84,9 +88,9 @@ all_rolls <- all_rolls %>%
          damage = "Damage Dealt",
          notes = Notes)
 
-#### Now to clean. For starters, let's replace all "Unknown" with NA
+# Now to clean. For starters, let's replace all "Unknown" with NA
+# TODO: Should be able to get rid of this since read_sheets() has na input
 all_rolls <- all_rolls %>% replace_with_na_all(condition = ~.x == "Unknown")
-#### Note: now 'time' has turned to dbl noting number of seconds ellapsed. I think that's fine.
 
 #### Now for the more complex problem of crits - natural 1's (Nat1) and natural 20s (Nat20).
 #### Not all of them have recorded total values, since crits automatically fail/succeed.
@@ -97,15 +101,21 @@ all_rolls$crit <- if_else((all_rolls$nat == 1 | all_rolls$nat == 20), 1, 0, 0) #
 #### Change the Nat1 and Nat20 in the total column to just 1 and 20
 ##### Need to check if na to avoid errors being thrown
 ##### TODO: but maybe it'd be better to determine modifiers from previous rolls and add them? Sounds... hard
-all_rolls[!is.na(all_rolls$total) & all_rolls$total == "Nat1", 'total'] <- 1
-all_rolls[!is.na(all_rolls$total) & all_rolls$total == "Nat20", 'total'] <- 20
+all_rolls[!is.na(all_rolls$total) & all_rolls$total == "Nat1", 'total'] <- "1"
+all_rolls[!is.na(all_rolls$total) & all_rolls$total == "Nat20", 'total'] <- "20"
 
-#### Change damage to numeric; no need for type or target
-##### damage follows format of "<amount> <damage type> to <character>", so should just be able to take first word as the value
+# Change damage to numeric; no need for type or target
+# damage follows format of "<amount> <damage type> to <character>", so should just be able to take first word as the value
+# TODO: Warning NAs introduced by coercion, but maybe that's ok. My guess is that happens if damage just has a memo without a value, so it should become NA anyway
 all_rolls$damage <- as.numeric(word(all_rolls$damage, 1))
 
-#### Change column types for total and nat to numeric
+# Change column types for total and nat to numeric
+# TODO: Warning NAs introduced by coercion, but maybe that's ok. My guess is that happens if damage just has a memo without a value, so it should become NA anyway
 all_rolls[, c('total', 'nat')] <- sapply(all_rolls[, c('total', 'nat')], as.numeric)
+
+# Change column time for time to time
+# TODO: have a datetime now, but sets date as current date which is technically incorrect... maybe don't do this?
+all_rolls$time <- as.POSIXct(all_rolls$time, format = "%H:%M:%S")
 
 # WRITE DATA
 usethis::use_data(all_rolls, overwrite = TRUE, compress = "xz")
