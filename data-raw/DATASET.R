@@ -19,11 +19,12 @@ ifelse(!dir.exists(here("data-raw/data")),
 # since the google sheets on the site are public, no need to force user to log in to Google
 sheets_deauth()
 
-### DATA-GETTING FUNCTIONS ###
+## DATA-GETTING FUNCTIONS ##
 
-## Crits and Rolls ##
+### Crits and Rolls ###
+# We'll just take the All Rolls, since that's the most interesting data (encompassing PC Nat1s and Nat 20s)
 
-# All Rolls
+#### All Rolls https://docs.google.com/spreadsheets/d/1OEg29XbL_YpO0m5JrLQpOPYTnxVsIg8iP67EYUrtRJg/edit?usp=sharing ####
 # This dataset is a google sheet listing all of the rolls by every PC (Player Character) in the Vox Machina Campaign.
 # It is split into separate sheets for each episode.
 # Oh god even between the sheets, the columns are different, though not by too much.
@@ -48,7 +49,6 @@ all_rolls_metadata <- sheets_get("https://docs.google.com/spreadsheets/d/1OEg29X
 
 tibble_list <- NULL
 # takes a longass time, but reads all the sheets (let's never do this again)
-# TODO: but this means that this data, with its dozens of google sheets, will take ages to download. Rip users
 for (x in 1:dim(all_rolls_metadata$sheets['name'])[1]) {
   # We start by just making a list of tibbles - much easier to bind them all at the end rather than as we go
   tibble_list[[x]] <- sheets_read("https://docs.google.com/spreadsheets/d/1OEg29XbL_YpO0m5JrLQpOPYTnxVsIg8iP67EYUrtRJg/edit",
@@ -90,7 +90,7 @@ all_rolls <- all_rolls %>%
 
 # Now to clean. For starters, let's replace all "Unknown" with NA
 # TODO: Should be able to get rid of this since read_sheets() has na input
-all_rolls <- all_rolls %>% replace_with_na_all(condition = ~.x == "Unknown")
+#all_rolls <- all_rolls %>% replace_with_na_all(condition = ~.x == "Unknown")
 
 #### Now for the more complex problem of crits - natural 1's (Nat1) and natural 20s (Nat20).
 #### Not all of them have recorded total values, since crits automatically fail/succeed.
@@ -117,5 +117,22 @@ all_rolls[, c('total', 'nat')] <- sapply(all_rolls[, c('total', 'nat')], as.nume
 # TODO: have a datetime now, but sets date as current date which is technically incorrect... maybe don't do this?
 all_rolls$time <- as.POSIXct(all_rolls$time, format = "%H:%M:%S")
 
-# WRITE DATA
+
+
+
+### Rankings ###
+
+#### Total Kills https://www.critrolestats.com/vm-kills ####
+
+
+#### Damage Dealt https://docs.google.com/spreadsheets/d/152k1UMyTCtwGcTJt_SvYenXvdYzGZJGvLmLpYLj9yYI/edit#gid=0 ####
+
+
+#### Damage Taken https://docs.google.com/spreadsheets/d/1yqRaiwoEuUocZkj2oySmIgmoEpIr6Ap18qNSe_F6G6o/edit#gid=0 ####
+
+
+#### Spells Cast https://docs.google.com/spreadsheets/d/1Y7FB0rEUX8Ik0MfGUtsdItoFWcvlgpGVcSJ0l9-dGDw/edit#gid=1159219189 ####
+
+
+## WRITE DATA ##
 usethis::use_data(all_rolls, overwrite = TRUE, compress = "xz")
