@@ -8,7 +8,7 @@
 library(tidyverse)
 library(here) # needed to check if directory exists
 library(googlesheets4) # lets you download multiple worksheets from google sheets https://cran.r-project.org/web/packages/googlesheets4/googlesheets4.pdf
-library(naniar) # needed to replace "Unknown" with NA TODO: can probably get rid of this
+library(rvest) # needed to scrape html tables
 library(usethis) # needed for writing packages
 
 # Check for data/ directory
@@ -21,7 +21,7 @@ sheets_deauth()
 
 ## DATA-GETTING FUNCTIONS ##
 
-### Crits and Rolls ###
+#### Crits and Rolls ####
 # We'll just take the All Rolls, since that's the most interesting data (encompassing PC Nat1s and Nat 20s)
 
 #### All Rolls https://docs.google.com/spreadsheets/d/1OEg29XbL_YpO0m5JrLQpOPYTnxVsIg8iP67EYUrtRJg/edit?usp=sharing ####
@@ -88,29 +88,26 @@ all_rolls <- all_rolls %>%
          damage = "Damage Dealt",
          notes = Notes)
 
-# Now to clean. For starters, let's replace all "Unknown" with NA
-# TODO: Should be able to get rid of this since read_sheets() has na input
-#all_rolls <- all_rolls %>% replace_with_na_all(condition = ~.x == "Unknown")
-
-#### Now for the more complex problem of crits - natural 1's (Nat1) and natural 20s (Nat20).
-#### Not all of them have recorded total values, since crits automatically fail/succeed.
-#### But it'd be nice to note crits when they happen, so we'll use a binary crit variable
-##### This was noted only for attack rolls in the original file, but any crit rolled sounds more interesting, so we'll write a new column.
+# Now to clean the data
+# We have the complex problem of crits - natural 1's (Nat1) and natural 20s (Nat20).
+# Not all of them have recorded total values, since crits (usually) automatically fail/succeed.
+# But it'd be nice to note crits when they happen, so we'll use a binary crit variable
+# > This was noted only for attack rolls in the original file, but any crit rolled sounds more interesting, so we'll write a new column.
 all_rolls$crit <- if_else((all_rolls$nat == 1 | all_rolls$nat == 20), 1, 0, 0) # 1 if crit, 0 otherwise
 
-#### Change the Nat1 and Nat20 in the total column to just 1 and 20
-##### Need to check if na to avoid errors being thrown
-##### TODO: but maybe it'd be better to determine modifiers from previous rolls and add them? Sounds... hard
+# Change the Nat1 and Nat20 in the total column to just 1 and 20
+# Need to check if na to avoid errors being thrown
+# TODO: but maybe it'd be better to determine modifiers from previous rolls and add them? Sounds... hard
 all_rolls[!is.na(all_rolls$total) & all_rolls$total == "Nat1", 'total'] <- "1"
 all_rolls[!is.na(all_rolls$total) & all_rolls$total == "Nat20", 'total'] <- "20"
 
 # Change damage to numeric; no need for type or target
 # damage follows format of "<amount> <damage type> to <character>", so should just be able to take first word as the value
-# TODO: Warning NAs introduced by coercion, but maybe that's ok. My guess is that happens if damage just has a memo without a value, so it should become NA anyway
+# Warning NAs introduced by coercion, but maybe that's ok. My guess is that happens if damage just has a memo without a value, so it should become NA anyway
 all_rolls$damage <- as.numeric(word(all_rolls$damage, 1))
 
 # Change column types for total and nat to numeric
-# TODO: Warning NAs introduced by coercion, but maybe that's ok. My guess is that happens if damage just has a memo without a value, so it should become NA anyway
+# Warning NAs introduced by coercion, but maybe that's ok. My guess is that happens if damage just has a memo without a value, so it should become NA anyway
 all_rolls[, c('total', 'nat')] <- sapply(all_rolls[, c('total', 'nat')], as.numeric)
 
 # Change column time for time to time
@@ -118,12 +115,21 @@ all_rolls[, c('total', 'nat')] <- sapply(all_rolls[, c('total', 'nat')], as.nume
 all_rolls$time <- as.POSIXct(all_rolls$time, format = "%H:%M:%S")
 
 
+####################
+#### Rankings ####
 
-
-### Rankings ###
 
 #### Total Kills https://www.critrolestats.com/vm-kills ####
+# this dataset is just an html table, so no need to go through google sheets
 
+# table is structured by character:
+# > first line in cell is character name (i.e. "Keyleth") + ":" + kill count (i.e. "34")
+# > remaining lines per cell are episode number (i.e. "Ep1") + ":" + kill count for that episode (i.e. "2")
+
+# Had to read from embedded google docs, hence URL change
+total_kills <- read_html("https://docs.google.com/document/d/1UB9QMA0sMmp5BwzZ5flQLbZPurcu6oGgM4s74O8NBLY/pub?embedded=true") %>%
+  html_nodes("table") %>%
+  html_table()
 
 #### Damage Dealt https://docs.google.com/spreadsheets/d/152k1UMyTCtwGcTJt_SvYenXvdYzGZJGvLmLpYLj9yYI/edit#gid=0 ####
 
