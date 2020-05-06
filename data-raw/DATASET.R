@@ -114,8 +114,8 @@ all_rolls[, c('total', 'nat')] <- sapply(all_rolls[, c('total', 'nat')], as.nume
 # Change column time for time to time
 # TODO: have a datetime now, but sets date as current date which is technically incorrect... maybe don't do this?
 all_rolls$time <- as.POSIXct(all_rolls$time, format = "%H:%M:%S")
-
 ####################
+vm_ep_list <- unique(all_rolls$ep) # list of episode names for Vox Machina campaign
 #### Rankings ####
 #### Total Kills https://www.critrolestats.com/vm-kills ####
 # this dataset is just an html table, so no need to go through google sheets
@@ -133,10 +133,23 @@ total_kills_list <- read_html("https://docs.google.com/document/d/1UB9QMA0sMmp5B
 # change total_kills from list of 1 to list of character strings - each item is for a different player character
 total_kills_list <- paste(unlist(total_kills_list))
 
-# loop through each item in total_kills_list (in other words, each character)
-for(c in total_kills_list) {
-  total_kills
+# TODO: BEST TO ADAPT PREVIOUS CODE
+## create tibble for each character in tibble list
+## char name, total kills, ep1 kills, ep2 kills, etc
+## then bind each as a row, change column names to char, total, ep1, ep2, etc.
+tibble_list <- NULL
+# takes a longass time, but reads all the sheets (let's never do this again)
+for (x in 1:dim(all_rolls_metadata$sheets['name'])[1]) {
+  # We start by just making a list of tibbles - much easier to bind them all at the end rather than as we go
+  tibble_list[[x]] <- sheets_read("https://docs.google.com/spreadsheets/d/1OEg29XbL_YpO0m5JrLQpOPYTnxVsIg8iP67EYUrtRJg/edit",
+                                  sheet = x,
+                                  col_types = "c", # need to read all cols as chars to avoid miscasting
+                                  na = c("", "Unknown") # deal with annoying non-standard NA values
+  )
+  Sys.sleep(1.5) # sleep 1.5s between each sheet read so Google doesn't get mad at us and throw Client error: (429) RESOURCE_EXHAUSTED
 }
+# bind them tibbles
+all_rolls <- bind_rows(tibble_list)
 
 # I think it's best to structure this tibble as follows:
 # Col1: char (name of character)
