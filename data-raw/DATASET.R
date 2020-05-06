@@ -8,6 +8,7 @@
 library(tidyverse)
 library(here) # needed to check if directory exists
 library(googlesheets4) # lets you download multiple worksheets from google sheets https://cran.r-project.org/web/packages/googlesheets4/googlesheets4.pdf
+library(stringr) # needed for word() function to separate character strings
 library(rvest) # needed to scrape html tables
 library(usethis) # needed for writing packages
 
@@ -114,22 +115,39 @@ all_rolls[, c('total', 'nat')] <- sapply(all_rolls[, c('total', 'nat')], as.nume
 # TODO: have a datetime now, but sets date as current date which is technically incorrect... maybe don't do this?
 all_rolls$time <- as.POSIXct(all_rolls$time, format = "%H:%M:%S")
 
-
 ####################
 #### Rankings ####
-
-
 #### Total Kills https://www.critrolestats.com/vm-kills ####
 # this dataset is just an html table, so no need to go through google sheets
 
 # table is structured by character:
 # > first line in cell is character name (i.e. "Keyleth") + ":" + kill count (i.e. "34")
 # > remaining lines per cell are episode number (i.e. "Ep1") + ":" + kill count for that episode (i.e. "2")
+# > note 0.5 kill represents a shared kill between two characters
 
 # Had to read from embedded google docs, hence URL change
-total_kills <- read_html("https://docs.google.com/document/d/1UB9QMA0sMmp5BwzZ5flQLbZPurcu6oGgM4s74O8NBLY/pub?embedded=true") %>%
+total_kills_list <- read_html("https://docs.google.com/document/d/1UB9QMA0sMmp5BwzZ5flQLbZPurcu6oGgM4s74O8NBLY/pub?embedded=true") %>%
   html_nodes("table") %>%
   html_table()
+
+# change total_kills from list of 1 to list of character strings - each item is for a different player character
+total_kills_list <- paste(unlist(total_kills_list))
+
+# loop through each item in total_kills_list (in other words, each character)
+for(c in total_kills_list) {
+  total_kills
+}
+
+# I think it's best to structure this tibble as follows:
+# Col1: char (name of character)
+# Col2: total (number of total kills in campaign)
+# Col3 ~: ep1 ~ (number of kills in each episode (1 onward))
+## e.g.
+## char       total   ep1   ep2   ep3   ep4   ep5   ~
+## Keyleth    116     0     0     6.5   0     1
+## ~
+
+
 
 #### Damage Dealt https://docs.google.com/spreadsheets/d/152k1UMyTCtwGcTJt_SvYenXvdYzGZJGvLmLpYLj9yYI/edit#gid=0 ####
 
