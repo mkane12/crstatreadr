@@ -48,11 +48,11 @@ sheets_deauth()
 # get metadata for the google sheet so we can loop through every worksheet
 all_rolls_metadata <- sheets_get("https://docs.google.com/spreadsheets/d/1OEg29XbL_YpO0m5JrLQpOPYTnxVsIg8iP67EYUrtRJg/edit")
 
-tibble_list <- NULL
+tibble_list_rolls <- NULL
 # takes a longass time, but reads all the sheets (let's never do this again)
 for (x in 1:dim(all_rolls_metadata$sheets['name'])[1]) {
   # We start by just making a list of tibbles - much easier to bind them all at the end rather than as we go
-  tibble_list[[x]] <- sheets_read("https://docs.google.com/spreadsheets/d/1OEg29XbL_YpO0m5JrLQpOPYTnxVsIg8iP67EYUrtRJg/edit",
+  tibble_list_rolls[[x]] <- sheets_read("https://docs.google.com/spreadsheets/d/1OEg29XbL_YpO0m5JrLQpOPYTnxVsIg8iP67EYUrtRJg/edit",
                                  sheet = x,
                                  col_types = "c", # need to read all cols as chars to avoid miscasting
                                  na = c("", "Unknown") # deal with annoying non-standard NA values
@@ -60,7 +60,7 @@ for (x in 1:dim(all_rolls_metadata$sheets['name'])[1]) {
   Sys.sleep(1.5) # sleep 1.5s between each sheet read so Google doesn't get mad at us and throw Client error: (429) RESOURCE_EXHAUSTED
 }
 # bind them tibbles
-all_rolls <- bind_rows(tibble_list)
+all_rolls <- bind_rows(tibble_list_rolls)
 
 # the columns we want are:
 # ep -> Episode (1)
@@ -137,19 +137,24 @@ total_kills_list <- paste(unlist(total_kills_list))
 ## create tibble for each character in tibble list
 ## char name, total kills, ep1 kills, ep2 kills, etc
 ## then bind each as a row, change column names to char, total, ep1, ep2, etc.
-tibble_list <- NULL
+tibble_list_kills <- NULL
 # takes a longass time, but reads all the sheets (let's never do this again)
-for (x in 1:dim(all_rolls_metadata$sheets['name'])[1]) {
+for (x in 1:2) {# for now we'll try with just 2 characters length(total_kills_list)) {
+
+  # Currently, list is formatted without space between episode values
+  # > i.e. "Grog: 64.5Ep1: 2Ep2: 1Ep4: 1Ep6: 2Ep15: 1Ep18: 3Ep19: 1...
+  # So let's put a space before every "E"
+
+
   # We start by just making a list of tibbles - much easier to bind them all at the end rather than as we go
-  tibble_list[[x]] <- sheets_read("https://docs.google.com/spreadsheets/d/1OEg29XbL_YpO0m5JrLQpOPYTnxVsIg8iP67EYUrtRJg/edit",
-                                  sheet = x,
-                                  col_types = "c", # need to read all cols as chars to avoid miscasting
-                                  na = c("", "Unknown") # deal with annoying non-standard NA values
+  tibble_list_kills[[x]] <- tibble(
+    char = word(total_kills_list[x], 1, sep = ":"), # gets character name and removes ":"
+    total = word(total_kills_list[x], 2, sep = "Ep") # gets total number of kills after char name
+    1:length(vm_ep_list) = NA
   )
-  Sys.sleep(1.5) # sleep 1.5s between each sheet read so Google doesn't get mad at us and throw Client error: (429) RESOURCE_EXHAUSTED
 }
 # bind them tibbles
-all_rolls <- bind_rows(tibble_list)
+all_kills <- bind_rows(tibble_list_kills)
 
 # I think it's best to structure this tibble as follows:
 # Col1: char (name of character)
