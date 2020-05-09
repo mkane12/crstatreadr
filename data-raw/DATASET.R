@@ -123,7 +123,6 @@ all_rolls[, c('total', 'nat')] <- sapply(all_rolls[, c('total', 'nat')], as.nume
 all_rolls$time <- as.POSIXct(all_rolls$time, format = "%H:%M:%S")
 ####################
 # list of episode names for Vox Machina campaign
-# Note: this list has some non-relevant ep names, including NA, 31 p1, 31 p2, etc. Unclear why some of the episodes were split into parts...
 vm_ep_list <- unique(all_rolls$ep)
 
 #### Rankings ####
@@ -148,21 +147,32 @@ total_kills_list <- paste(unlist(total_kills_list))
 ## char name, total kills, ep1 kills, ep2 kills, etc
 ## then bind each as a row, change column names to char, total, ep1, ep2, etc.
 tibble_list_kills <- NULL
-# takes a longass time, but reads all the sheets (let's never do this again)
+
 for (x in 1:2) {# for now we'll try with just 2 characters length(total_kills_list)) {
 
   # Currently, list is formatted without space between episode values
   # > i.e. "Grog: 64.5Ep1: 2Ep2: 1Ep4: 1Ep6: 2Ep15: 1Ep18: 3Ep19: 1...
   # So let's separate by every "Ep
-  char_kills_list <- str_split_fixed(total_kills_list[x], pattern="Ep", n=length(vm_ep_list))
+  char_kills_list <- str_split_fixed(total_kills_list[x], pattern = "Ep", n = length(vm_ep_list))
   # and now we have a list of strings with the following format:
   # > item 1: "<character name>: <total kills>"
   # > item 2 onward: "<ep number>: <ep kills>"
+
+  # create another tibble for kills per individual episode
+  char_ep_kills <- NULL
+  for(i in 2:length(char_kills_list)) {
+    ep <- as.numeric(word(char_kills_list[i], 1, sep = ":")) # episode number
+    # TODO: something is weird about the whitespace here...
+    ep_kills <- as.numeric((word(char_kills_list[i], 2))) # episode kills
+    char_ep_kills[[ep]] <-
+  }
 
   # We start by just making a list of tibbles - much easier to bind them all at the end rather than as we go
   tibble_list_kills[[x]] <- tibble(
     char = word(total_kills_list[x], 1, sep = ":"), # gets character name and removes ":"
     total = word(total_kills_list[x], 2, sep = "Ep") # gets total number of kills after char name
+  ) %>% add_column(
+    char_ep_kills
   )
 }
 # bind them tibbles
