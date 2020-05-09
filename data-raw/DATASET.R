@@ -90,6 +90,13 @@ all_rolls <- all_rolls %>%
          notes = Notes)
 
 # Now to clean the data
+
+# Looks like there was an empty sheet yielding several all NA rows - let's remove those
+all_rolls <- filter_all(all_rolls, any_vars(!is.na(.)))
+
+# Not all ep are just numbers - some have been split into parts (i.e. 31 p1) - let's just keep the integer value, since we don't care about these splits, and make it numeric
+all_rolls$ep <- as.numeric(word(all_rolls$ep, 1))
+
 # We have the complex problem of crits - natural 1's (Nat1) and natural 20s (Nat20).
 # Not all of them have recorded total values, since crits (usually) automatically fail/succeed.
 # But it'd be nice to note crits when they happen, so we'll use a binary crit variable
@@ -115,7 +122,10 @@ all_rolls[, c('total', 'nat')] <- sapply(all_rolls[, c('total', 'nat')], as.nume
 # TODO: have a datetime now, but sets date as current date which is technically incorrect... maybe don't do this?
 all_rolls$time <- as.POSIXct(all_rolls$time, format = "%H:%M:%S")
 ####################
-vm_ep_list <- unique(all_rolls$ep) # list of episode names for Vox Machina campaign
+# list of episode names for Vox Machina campaign
+# Note: this list has some non-relevant ep names, including NA, 31 p1, 31 p2, etc. Unclear why some of the episodes were split into parts...
+vm_ep_list <- unique(all_rolls$ep)
+
 #### Rankings ####
 #### Total Kills https://www.critrolestats.com/vm-kills ####
 # this dataset is just an html table, so no need to go through google sheets
@@ -143,14 +153,16 @@ for (x in 1:2) {# for now we'll try with just 2 characters length(total_kills_li
 
   # Currently, list is formatted without space between episode values
   # > i.e. "Grog: 64.5Ep1: 2Ep2: 1Ep4: 1Ep6: 2Ep15: 1Ep18: 3Ep19: 1...
-  # So let's put a space before every "E"
-
+  # So let's separate by every "Ep
+  char_kills_list <- str_split_fixed(total_kills_list[x], pattern="Ep", n=length(vm_ep_list))
+  # and now we have a list of strings with the following format:
+  # > item 1: "<character name>: <total kills>"
+  # > item 2 onward: "<ep number>: <ep kills>"
 
   # We start by just making a list of tibbles - much easier to bind them all at the end rather than as we go
   tibble_list_kills[[x]] <- tibble(
     char = word(total_kills_list[x], 1, sep = ":"), # gets character name and removes ":"
     total = word(total_kills_list[x], 2, sep = "Ep") # gets total number of kills after char name
-    1:length(vm_ep_list) = NA
   )
 }
 # bind them tibbles
