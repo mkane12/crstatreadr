@@ -162,9 +162,10 @@ for (x in 1:2) {# for now we'll try with just 2 characters length(total_kills_li
   char_ep_kills <- NULL
   for(i in 2:length(char_kills_list)) {
     ep <- as.numeric(word(char_kills_list[i], 1, sep = ":")) # episode number
-    # TODO: something is weird about the whitespace here...
-    ep_kills <- as.numeric((word(char_kills_list[i], 2))) # episode kills
-    char_ep_kills[[ep]] <-
+
+    # whitespace was a "non-breaking space," hence the need for str_trim from stringr as well as trimws
+    ep_kills <- as.numeric(trimws(str_trim(word(char_kills_list[i], 2, sep = ":")))) # episode kills
+    char_ep_kills[[ep]] <- ep_kills
   }
 
   # We start by just making a list of tibbles - much easier to bind them all at the end rather than as we go
