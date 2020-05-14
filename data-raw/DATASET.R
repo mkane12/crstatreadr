@@ -20,7 +20,7 @@ ifelse(!dir.exists(here("data-raw/data")),
 # since the google sheets on the site are public, no need to force user to log in to Google
 sheets_deauth()
 
-## DATA-GETTING FUNCTIONS ##
+#### DATA-GETTING FUNCTIONS ####
 
 #### Crits and Rolls ####
 # We'll just take the All Rolls, since that's the most interesting data (encompassing PC Nat1s and Nat 20s)
@@ -121,7 +121,6 @@ all_rolls[, c('total', 'nat')] <- sapply(all_rolls[, c('total', 'nat')], as.nume
 # Change column time for time to time
 # TODO: have a datetime now, but sets date as current date which is technically incorrect... maybe don't do this?
 all_rolls$time <- as.POSIXct(all_rolls$time, format = "%H:%M:%S")
-####################
 # list of episode names for Vox Machina campaign
 vm_ep_list <- unique(all_rolls$ep)
 
@@ -196,13 +195,29 @@ all_kills <- bind_rows(tibble_list_kills)
 
 
 #### Damage Dealt https://docs.google.com/spreadsheets/d/152k1UMyTCtwGcTJt_SvYenXvdYzGZJGvLmLpYLj9yYI/edit#gid=0 ####
+# back to google sheets
 
+# get metadata for the google sheet so we can loop through every worksheet
+all_damage_dealt_metadata <- sheets_get("https://docs.google.com/spreadsheets/d/152k1UMyTCtwGcTJt_SvYenXvdYzGZJGvLmLpYLj9yYI/edit")
+
+tibble_list_damage_dealt <- NULL
+
+for (x in 1:dim(all_damage_dealt_metadata$sheets['name'])[1]) {
+  # We start by just making a list of tibbles - much easier to bind them all at the end rather than as we go
+  tibble_list_damage_dealt[[x]] <- sheets_read("https://docs.google.com/spreadsheets/d/152k1UMyTCtwGcTJt_SvYenXvdYzGZJGvLmLpYLj9yYI/edit",
+                                        sheet = x,
+                                        col_types = "c", # need to read all cols as chars to avoid miscasting
+                                        na = c("", "Unknown", "-") # deal with annoying non-standard NA values
+  )
+  Sys.sleep(1.5) # sleep 1.5s between each sheet read so Google doesn't get mad at us and throw Client error: (429) RESOURCE_EXHAUSTED
+}
 
 #### Damage Taken https://docs.google.com/spreadsheets/d/1yqRaiwoEuUocZkj2oySmIgmoEpIr6Ap18qNSe_F6G6o/edit#gid=0 ####
 
 
 #### Spells Cast https://docs.google.com/spreadsheets/d/1Y7FB0rEUX8Ik0MfGUtsdItoFWcvlgpGVcSJ0l9-dGDw/edit#gid=1159219189 ####
 
+#### Rankings ####
 
 #### WRITE DATA ####
 usethis::use_data(all_rolls, overwrite = TRUE, compress = "xz")
