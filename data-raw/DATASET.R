@@ -129,6 +129,15 @@ vm_ep_list <- unique(all_rolls$ep)
 #### Total Kills https://www.critrolestats.com/vm-kills ####
 # this dataset is just an html table, so no need to go through google sheets
 
+# I think it's best to structure this tibble as follows:
+# Col1: char (name of character)
+# Col2: total (number of total kills in campaign)
+# Col3 ~: ep1 ~ (number of kills in each episode (1 onward))
+## e.g.
+## char       total   ep1   ep2   ep3   ep4   ep5   ~
+## Keyleth    116     0     0     6.5   0     1
+## ~
+
 # table is structured by character:
 # > first line in cell is character name (i.e. "Keyleth") + ":" + kill count (i.e. "34")
 # > remaining lines per cell are episode number (i.e. "Ep1") + ":" + kill count for that episode (i.e. "2")
@@ -147,7 +156,7 @@ total_kills_list <- paste(unlist(total_kills_list))
 ## then bind each as a row, change column names to char, total, ep1, ep2, etc.
 tibble_list_kills <- NULL
 
-for (x in 1:1) {# for now we'll try with just 1 character length(total_kills_list)) {
+for (x in 2:length(total_kills_list)) {
 
   # Currently, list is formatted without space between episode values
   # > i.e. "Grog: 64.5Ep1: 2Ep2: 1Ep4: 1Ep6: 2Ep15: 1Ep18: 3Ep19: 1...
@@ -159,8 +168,8 @@ for (x in 1:1) {# for now we'll try with just 1 character length(total_kills_lis
 
   # # Start with the easier components to separate out: character name and total kills
   tibble_list_kills[[x]] <- tibble(
-    char = word(char_kills_list[x], 1, sep = ":"), # gets character name and removes ":"
-    total = as.numeric(word(char_kills_list[x], 2, sep = " "))) # gets total number of kills after char name
+    char = word(char_kills_list[1], 1, sep = ":"), # gets character name and removes ":"
+    total = as.numeric(word(char_kills_list[1], 2, sep = " "))) # gets total number of kills after char name
 
   # make list of episode names ("ep1", "ep2", ... "ep115")
   episodes <- paste("ep", 1:length(vm_ep_list), sep = "")
@@ -168,7 +177,7 @@ for (x in 1:1) {# for now we'll try with just 1 character length(total_kills_lis
   # add empty columns for episode kills
   tibble_list_kills[[x]][,episodes] <- NA
 
-  # create another tibble for kills per individual episode
+  # get kills per individual episode
   for(i in 2:length(char_kills_list)) {
 
     ep <- as.numeric(word(char_kills_list[i], 1, sep = ":")) # episode number
@@ -185,16 +194,6 @@ for (x in 1:1) {# for now we'll try with just 1 character length(total_kills_lis
 # bind them tibbles
 all_kills <- bind_rows(tibble_list_kills)
 
-# I think it's best to structure this tibble as follows:
-# Col1: char (name of character)
-# Col2: total (number of total kills in campaign)
-# Col3 ~: ep1 ~ (number of kills in each episode (1 onward))
-## e.g.
-## char       total   ep1   ep2   ep3   ep4   ep5   ~
-## Keyleth    116     0     0     6.5   0     1
-## ~
-
-
 
 #### Damage Dealt https://docs.google.com/spreadsheets/d/152k1UMyTCtwGcTJt_SvYenXvdYzGZJGvLmLpYLj9yYI/edit#gid=0 ####
 
@@ -205,5 +204,6 @@ all_kills <- bind_rows(tibble_list_kills)
 #### Spells Cast https://docs.google.com/spreadsheets/d/1Y7FB0rEUX8Ik0MfGUtsdItoFWcvlgpGVcSJ0l9-dGDw/edit#gid=1159219189 ####
 
 
-## WRITE DATA ##
+#### WRITE DATA ####
 usethis::use_data(all_rolls, overwrite = TRUE, compress = "xz")
+usethis::use_data(all_kills, overwrite = TRUE, compress = "xz")
