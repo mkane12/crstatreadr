@@ -147,7 +147,7 @@ total_kills_list <- paste(unlist(total_kills_list))
 ## then bind each as a row, change column names to char, total, ep1, ep2, etc.
 tibble_list_kills <- NULL
 
-for (x in 1:2) {# for now we'll try with just 2 characters length(total_kills_list)) {
+for (x in 1:1) {# for now we'll try with just 1 character length(total_kills_list)) {
 
   # Currently, list is formatted without space between episode values
   # > i.e. "Grog: 64.5Ep1: 2Ep2: 1Ep4: 1Ep6: 2Ep15: 1Ep18: 3Ep19: 1...
@@ -157,8 +157,18 @@ for (x in 1:2) {# for now we'll try with just 2 characters length(total_kills_li
   # > item 1: "<character name>: <total kills>"
   # > item 2 onward: "<ep number>: <ep kills>"
 
+  # # Start with the easier components to separate out: character name and total kills
+  tibble_list_kills[[x]] <- tibble(
+    char = word(char_kills_list[x], 1, sep = ":"), # gets character name and removes ":"
+    total = as.numeric(word(char_kills_list[x], 2, sep = " "))) # gets total number of kills after char name
+
+  # make list of episode names ("ep1", "ep2", ... "ep115")
+  episodes <- paste("ep", 1:length(vm_ep_list), sep = "")
+
+  # add empty columns for episode kills
+  tibble_list_kills[[x]][,episodes] <- NA
+
   # create another tibble for kills per individual episode
-  char_ep_kills <- NULL
   for(i in 2:length(char_kills_list)) {
 
     ep <- as.numeric(word(char_kills_list[i], 1, sep = ":")) # episode number
@@ -166,19 +176,12 @@ for (x in 1:2) {# for now we'll try with just 2 characters length(total_kills_li
     if(!is.na(ep)) { # check that ep is not NA (in other words, check that we have not exceeded number of episodes in campaign, since not all eps have kills)
       # whitespace was a "non-breaking space," hence the need for str_trim from stringr
       ep_kills <- as.numeric(str_trim(word(char_kills_list[i], 2, sep = ":"))) # episode kills
-      char_ep_kills[[ep]] <- ep_kills
+
+      tibble_list_kills[[x]][,paste("ep", ep, sep = "")] <- ep_kills
     }
   }
-
-  episodes <- paste("ep", 1:length(vm_ep_list), sep = "")
-
-  # Start with the easier components to separate out: character name and total kills
-  tibble_list_kills[[x]] <- tibble(
-    char = word(char_kills_list[x], 1, sep = ":"), # gets character name and removes ":"
-    total = as.numeric(word(char_kills_list[x], 2, sep = " ")) # gets total number of kills after char name
-  ) %>%
-    tibble::add_column(!!!set_names(char_ep_kills,nm=episodes))
 }
+
 # bind them tibbles
 all_kills <- bind_rows(tibble_list_kills)
 
