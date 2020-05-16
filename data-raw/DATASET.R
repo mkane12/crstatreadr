@@ -197,6 +197,16 @@ all_kills <- bind_rows(tibble_list_kills)
 #### Damage Dealt https://docs.google.com/spreadsheets/d/152k1UMyTCtwGcTJt_SvYenXvdYzGZJGvLmLpYLj9yYI/edit#gid=0 ####
 # back to google sheets
 
+# these sheets are formatted differently:
+# > The first sheet is total and average damage dealt for each player, as well as individual damage amounts
+# Player  Keyleth   Pike    ...
+# Average 23.8      21.71   ...
+# Total   6126      1390    ...
+#         4         16      ...
+#         ...       ...
+# > Then, each sheet after that lists damage done each episode, laid out in the same way as above (with total and avg of that episode)
+# >> there is also a total for the episode in the bottom left corner, so be sure to ignore that
+
 # get metadata for the google sheet so we can loop through every worksheet
 all_damage_dealt_metadata <- sheets_get("https://docs.google.com/spreadsheets/d/152k1UMyTCtwGcTJt_SvYenXvdYzGZJGvLmLpYLj9yYI/edit")
 
@@ -211,6 +221,11 @@ for (x in 1:dim(all_damage_dealt_metadata$sheets['name'])[1]) {
   )
   Sys.sleep(1.5) # sleep 1.5s between each sheet read so Google doesn't get mad at us and throw Client error: (429) RESOURCE_EXHAUSTED
 }
+
+# Let's go with the following layout for the final table, where each ep# indicates amount of damage dealt that episode by that character
+# char      total   avg     ep1   ep2   ep3   ...
+# Keyleth   6126    23.8    4     53    0     ...
+
 
 #### Damage Taken https://docs.google.com/spreadsheets/d/1yqRaiwoEuUocZkj2oySmIgmoEpIr6Ap18qNSe_F6G6o/edit#gid=0 ####
 
