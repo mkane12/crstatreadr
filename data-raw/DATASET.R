@@ -226,13 +226,22 @@ for (x in 1:dim(all_damage_dealt_metadata$sheets['name'])[1]) {
 # char      total   avg     ep1   ep2   ep3   ...
 # Keyleth   6126    23.8    4     53    0     ...
 
+# Let's start with the info from sheet 1 - that will get us our first three columns (char, total, avg)
+# TODO: we remove some empty rows by index (difficulty detecting ellipsis "..." as empty columns labeled).
+# TODO: Don't love this method, since column indices are prone to change, but ok for now
+charnames <- names(tibble_list_damage_dealt[[1]])[c(2:9, 11:14, 16:length(names(tibble_list_damage_dealt[[1]])))]
+
+all_damage_dealt <- tibble(
+  char = charnames
+)
+
 
 #### Damage Taken https://docs.google.com/spreadsheets/d/1yqRaiwoEuUocZkj2oySmIgmoEpIr6Ap18qNSe_F6G6o/edit#gid=0 ####
 
 
 #### Spells Cast https://docs.google.com/spreadsheets/d/1Y7FB0rEUX8Ik0MfGUtsdItoFWcvlgpGVcSJ0l9-dGDw/edit#gid=1159219189 ####
 
-#### Rankings ####
+#### Time and Attendance ####
 
 #### WRITE DATA ####
 usethis::use_data(all_rolls, overwrite = TRUE, compress = "xz")
