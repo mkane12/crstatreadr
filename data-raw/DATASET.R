@@ -217,22 +217,24 @@ for (x in 1:dim(all_damage_dealt_metadata$sheets['name'])[1]) {
   tibble_list_damage_dealt[[x]] <- sheets_read("https://docs.google.com/spreadsheets/d/152k1UMyTCtwGcTJt_SvYenXvdYzGZJGvLmLpYLj9yYI/edit",
                                         sheet = x,
                                         col_types = "c", # need to read all cols as chars to avoid miscasting
-                                        na = c("", "Unknown", "-") # deal with annoying non-standard NA values
-  )
+                                        na = c("", "Unknown", "-"), # deal with annoying non-standard NA values
+                                        range = "B1:AB" # skip first column, which just includes labels we will ignore
+                                        )
   Sys.sleep(1.5) # sleep 1.5s between each sheet read so Google doesn't get mad at us and throw Client error: (429) RESOURCE_EXHAUSTED
 }
 
 # Let's go with the following layout for the final table, where each ep# indicates amount of damage dealt that episode by that character
-# char      total   avg     ep1   ep2   ep3   ...
-# Keyleth   6126    23.8    4     53    0     ...
+# char      avg     total     ep1   ep2   ep3   ...
+# Keyleth   23.8    6126    4     53    0     ...
 
 # Let's start with the info from sheet 1 - that will get us our first three columns (char, total, avg)
-# TODO: we remove some empty rows by index (difficulty detecting ellipsis "..." as empty columns labeled).
-# TODO: Don't love this method, since column indices are prone to change, but ok for now
-charnames <- names(tibble_list_damage_dealt[[1]])[c(2:9, 11:14, 16:length(names(tibble_list_damage_dealt[[1]])))]
+# TODO: currently have some empty columns that list names as "...9" and "...14". Difficulty reading ellipsis, so maybe we can delete them later
+charnames <- names(tibble_list_damage_dealt[[1]])
+avg <- as.numeric(tibble_list_damage_dealt[[1]][1,])
 
 all_damage_dealt <- tibble(
-  char = charnames
+  char = charnames,
+  avg = avg
 )
 
 
