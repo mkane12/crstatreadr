@@ -121,8 +121,10 @@ all_rolls[, c('total', 'nat')] <- sapply(all_rolls[, c('total', 'nat')], as.nume
 # Change column time for time to time
 # TODO: have a datetime now, but sets date as current date which is technically incorrect... maybe don't do this?
 all_rolls$time <- as.POSIXct(all_rolls$time, format = "%H:%M:%S")
-# list of episode names for Vox Machina campaign
-vm_ep_list <- unique(all_rolls$ep)
+
+# make list of episode names for the Vox Machina campaign ("ep1", "ep2", ... "ep115")
+episodes <- unique(all_rolls$ep)
+episodes <- paste("ep", 1:length(vm_ep_list), sep = "")
 
 #### Rankings ####
 #### Total Kills https://www.critrolestats.com/vm-kills ####
@@ -170,9 +172,6 @@ for (x in 2:length(total_kills_list)) {
     char = word(char_kills_list[1], 1, sep = ":"), # gets character name and removes ":"
     total = as.numeric(word(char_kills_list[1], 2, sep = " "))) # gets total number of kills after char name
 
-  # make list of episode names ("ep1", "ep2", ... "ep115")
-  episodes <- paste("ep", 1:length(vm_ep_list), sep = "")
-
   # add empty columns for episode kills
   tibble_list_kills[[x]][,episodes] <- NA
 
@@ -206,6 +205,7 @@ all_kills <- bind_rows(tibble_list_kills)
 #         ...       ...
 # > Then, each sheet after that lists damage done each episode, laid out in the same way as above (with total and avg of that episode)
 # >> there is also a total for the episode in the bottom left corner, so be sure to ignore that
+# > Note: every episode has its own sheet, even if no damage has been dealt
 
 # get metadata for the google sheet so we can loop through every worksheet
 all_damage_dealt_metadata <- sheets_get("https://docs.google.com/spreadsheets/d/152k1UMyTCtwGcTJt_SvYenXvdYzGZJGvLmLpYLj9yYI/edit")
@@ -225,17 +225,36 @@ for (x in 1:dim(all_damage_dealt_metadata$sheets['name'])[1]) {
 
 # Let's go with the following layout for the final table, where each ep# indicates amount of damage dealt that episode by that character
 # char      avg     total     ep1   ep2   ep3   ...
-# Keyleth   23.8    6126    4     53    0     ...
+# Keyleth   23.8    6126      4     53    0     ...
 
 # Let's start with the info from sheet 1 - that will get us our first three columns (char, total, avg)
 # TODO: currently have some empty columns that list names as "...9" and "...14". Difficulty reading ellipsis, so maybe we can delete them later
 charnames <- names(tibble_list_damage_dealt[[1]])
 avg <- as.numeric(tibble_list_damage_dealt[[1]][1,])
+total <- as.numeric(tibble_list_damage_dealt[[1]][2,])
 
 all_damage_dealt <- tibble(
   char = charnames,
-  avg = avg
+  avg = avg,
+  total = total
 )
+
+# Next, let's look at total damage per episode per character
+# iterate through the sheets for each episode
+for (i in 2:2){ #again start with just 1 sheet for now length(tibble_list_damage_dealt)) {
+
+  # iterate through each character for each episode
+  for (char in names(tibble_list_damage_dealt[[i]])) {
+
+    ep <- episodes[i - 1]
+    # TODO: accessing correct cell, but recycling error when assigning value "Error: `x` can't be recycled to size 3."
+    all_damage_dealt[all_damage_dealt$char == char, ][ep] <- tibble_list_damage_dealt[[i]][2, char]
+
+  }
+
+}
+
+
 
 
 #### Damage Taken https://docs.google.com/spreadsheets/d/1yqRaiwoEuUocZkj2oySmIgmoEpIr6Ap18qNSe_F6G6o/edit#gid=0 ####
