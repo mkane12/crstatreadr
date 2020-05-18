@@ -239,16 +239,19 @@ all_damage_dealt <- tibble(
   total = total
 )
 
+# add empty columns for episode damage
+# we assign it as 0 to avoid assignment type errors later
+all_damage_dealt[, episodes] <- 0
+
 # Next, let's look at total damage per episode per character
 # iterate through the sheets for each episode
-for (i in 2:2){ #again start with just 1 sheet for now length(tibble_list_damage_dealt)) {
+for (i in 2:length(tibble_list_damage_dealt)) {
 
   # iterate through each character for each episode
   for (char in names(tibble_list_damage_dealt[[i]])) {
 
     ep <- episodes[i - 1]
-    # TODO: accessing correct cell, but recycling error when assigning value "Error: `x` can't be recycled to size 3."
-    all_damage_dealt[all_damage_dealt$char == char, ][ep] <- tibble_list_damage_dealt[[i]][2, char]
+    all_damage_dealt[all_damage_dealt$char == char, ep] <- as.numeric(tibble_list_damage_dealt[[i]][2, char])
 
   }
 
