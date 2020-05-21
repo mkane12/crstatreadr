@@ -246,19 +246,20 @@ all_damage_dealt[, episodes] <- 0
 # Next, let's look at total damage per episode per character
 # iterate through the sheets for each episode
 for (i in 2:length(tibble_list_damage_dealt)) {
-
   # iterate through each character for each episode
   for (char in names(tibble_list_damage_dealt[[i]])) {
-
     ep <- episodes[i - 1]
     all_damage_dealt[all_damage_dealt$char == char, ep] <- as.numeric(tibble_list_damage_dealt[[i]][2, char])
-
   }
-
 }
 
-
-
+# Now to clean. We have some empty rows (from the empty columns in the first sheet), so let's remove those
+# > These empty rows have NA as a value for avg
+# Let's also replace all remaining NA values with 0
+# > These NA values came from '-' cells in the dataset, which indicated that a character did not deal damage that episode
+all_damage_dealt <- all_damage_dealt %>%
+  drop_na('avg') %>%
+  mutate_each_(funs(replace(., which(is.na(.)), 0)), names(all_damage_dealt))
 
 #### Damage Taken https://docs.google.com/spreadsheets/d/1yqRaiwoEuUocZkj2oySmIgmoEpIr6Ap18qNSe_F6G6o/edit#gid=0 ####
 
@@ -270,3 +271,5 @@ for (i in 2:length(tibble_list_damage_dealt)) {
 #### WRITE DATA ####
 usethis::use_data(all_rolls, overwrite = TRUE, compress = "xz")
 usethis::use_data(all_kills, overwrite = TRUE, compress = "xz")
+usethis::use_data(all_damage_dealt, overwrite = TRUE, compress = "xz")
+
