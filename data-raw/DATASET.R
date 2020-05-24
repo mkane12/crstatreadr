@@ -10,14 +10,15 @@ library(here) # needed to check if directory exists
 library(googlesheets4) # lets you download multiple worksheets from google sheets https://cran.r-project.org/web/packages/googlesheets4/googlesheets4.pdf
 library(stringr) # needed for word() function to separate character strings
 library(rvest) # needed to scrape html tables
+library(RSQLite) # used to interface with RSQLite dtabases
 library(usethis) # needed for writing packages
 
-# Check for data/ directory
+# Check for data/directory
 ifelse(!dir.exists(here("data-raw/data")),
        dir.create(file.path("data-raw/data")),
        FALSE)
 
-# since the google sheets on the site are public, no need to force user to log in to Google
+# since the google sheets on the site are public (view only), no need to force user to log in to Google
 sheets_deauth()
 
 #### DATA-GETTING FUNCTIONS ####
@@ -61,6 +62,8 @@ for (x in 1:dim(all_rolls_metadata$sheets['name'])[1]) {
 }
 # bind them tibbles
 all_rolls <- bind_rows(tibble_list_rolls)
+
+# TODO: add garbage SQL database here
 
 # the columns we want are:
 # ep -> Episode (1)
@@ -173,7 +176,7 @@ for (x in 2:length(total_kills_list)) {
     total = as.numeric(word(char_kills_list[1], 2, sep = " "))) # gets total number of kills after char name
 
   # add empty columns for episode kills
-  tibble_list_kills[[x]][,episodes] <- NA
+  tibble_list_kills[[x]][,episodes] <- 0
 
   # get kills per individual episode
   for(i in 2:length(char_kills_list)) {
@@ -191,6 +194,8 @@ for (x in 2:length(total_kills_list)) {
 
 # bind them tibbles
 all_kills <- bind_rows(tibble_list_kills)
+
+# TODO: change NA entries to 0
 
 
 #### Damage Dealt https://docs.google.com/spreadsheets/d/152k1UMyTCtwGcTJt_SvYenXvdYzGZJGvLmLpYLj9yYI/edit#gid=0 ####
@@ -228,7 +233,6 @@ for (x in 1:dim(all_damage_dealt_metadata$sheets['name'])[1]) {
 # Keyleth   23.8    6126      4     53    0     ...
 
 # Let's start with the info from sheet 1 - that will get us our first three columns (char, total, avg)
-# TODO: currently have some empty columns that list names as "...9" and "...14". Difficulty reading ellipsis, so maybe we can delete them later
 charnames <- names(tibble_list_damage_dealt[[1]])
 avg <- as.numeric(tibble_list_damage_dealt[[1]][1,])
 total <- as.numeric(tibble_list_damage_dealt[[1]][2,])
@@ -273,3 +277,14 @@ usethis::use_data(all_rolls, overwrite = TRUE, compress = "xz")
 usethis::use_data(all_kills, overwrite = TRUE, compress = "xz")
 usethis::use_data(all_damage_dealt, overwrite = TRUE, compress = "xz")
 
+# Also write data to an SQLite Database.
+# Our data isn't very heavy, so this light-weight database should be sufficient.
+# Reference: https://db.rstudio.com/databases/sqlite/
+
+# Create an ephemeral in-memory RSQLite database
+# TODO: What is the point of this? When we disconnect, everything disappears.
+con <- dbConnect(RSQLite::SQLite(), ":memory:")
+dbWriteTable(con, "all_rolls", all_rolls)
+dbWriteTable(con, "all_kills", all_kills)
+dbWriteTable(con, "all_damage_dealt", all_damage_dealt)
+dbDisconnect(con)
